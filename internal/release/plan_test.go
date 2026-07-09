@@ -23,3 +23,19 @@ func TestLatestTag(t *testing.T) {
 		}
 	})
 }
+
+func TestCommitMessage(t *testing.T) {
+	plan := Plan{
+		Module:  discovery.Module{Name: "boot", RelPath: "boot"},
+		Version: "v1.2.3",
+		Tag:     "boot/v1.2.3",
+	}
+	if got := commitMessage(plan); got != "release(boot): v1.2.3" {
+		t.Fatalf("commitMessage = %q", got)
+	}
+
+	plan.CommitMessage = "release {{ .Tag }} from {{ .Path }}"
+	if got := commitMessage(plan); got != "release boot/v1.2.3 from boot" {
+		t.Fatalf("templated commitMessage = %q", got)
+	}
+}

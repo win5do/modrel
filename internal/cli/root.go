@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/win5do/modrel/internal/config"
 	"github.com/win5do/modrel/internal/discovery"
 	"github.com/win5do/modrel/internal/git"
 	"github.com/win5do/modrel/internal/prompt"
@@ -17,6 +18,7 @@ import (
 type options struct {
 	version string
 	typ     string
+	noPush  bool
 }
 
 // NewRootCommand builds the modrel command tree.
@@ -41,6 +43,7 @@ func NewRootCommand() *cobra.Command {
 
 	cmd.AddCommand(newListCommand())
 	cmd.AddCommand(newPlanCommand())
+	cmd.AddCommand(newApplyCommand())
 
 	return cmd
 }
@@ -86,34 +89,74 @@ func newPlanCommand() *cobra.Command {
 	return cmd
 }
 
+func newApplyCommand() *cobra.Command {
+	opts := &options{noPush: true}
+	cmd := &cobra.Command{
+		Use:   "apply [path]",
+		Short: "Apply a release plan by committing and tagging",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			target := ""
+			if len(args) == 1 {
+				target = args[0]
+			}
+			repoRoot, plan, err := buildPlan(cmd.Context(), target, opts)
+			if err != nil {
+				return err
+			}
+			if err := release.PrintPlan(cmd.OutOrStdout(), plan); err != nil {
+				return err
+			}
+			return release.Apply(cmd.Context(), cmd.OutOrStdout(), repoRoot, plan, release.ApplyOptions{NoPush: opts.noPush})
+		},
+	}
+	cmd.Flags().StringVar(&opts.version, "version", "", "release version, for example v1.2.3 or v1.2.3-rc.1")
+	cmd.Flags().StringVar(&opts.typ, "type", "", "version type to propose when --version is omitted: stable or rc")
+	cmd.Flags().BoolVar(&opts.noPush, "no-push", true, "create commit and tag locally without pushing")
+	return cmd
+}
+
 func runPlan(ctx context.Context, out io.Writer, target string, opts *options) error {
-	root, err := git.Root(ctx, ".")
+	_, plan, err := buildPlan(ctx, target, opts)
 	if err != nil {
 		return err
+	}
+	return release.PrintPlan(out, plan)
+}
+
+func buildPlan(ctx context.Context, target string, opts *options) (string, release.Plan, error) {
+	root, err := git.Root(ctx, ".")
+	if err != nil {
+		return "", release.Plan{}, err
 	}
 
 	modules, err := discovery.Discover(root)
 	if err != nil {
-		return err
+		return "", release.Plan{}, err
 	}
 
 	var module discovery.Module
 	if target == "" {
 		module, err = prompt.SelectModule(modules)
 		if err != nil {
-			return err
+			return "", release.Plan{}, err
 		}
 	} else {
 		module, err = discovery.Resolve(root, modules, target)
 		if err != nil {
-			return err
+			return "", release.Plan{}, err
 		}
 	}
 
 	tags, err := git.Tags(ctx, root)
 	if err != nil {
-		return err
+		return "", release.Plan{}, err
 	}
+	cfg, err := config.Load(root)
+	if err != nil {
+		return "", release.Plan{}, err
+	}
+	moduleConfig := cfg.ForModule(module.Name)
 
 	latest := release.LatestTag(module, tags)
 	resolvedVersion := opts.version
@@ -122,27 +165,42 @@ func runPlan(ctx context.Context, out io.Writer, target string, opts *options) e
 		if releaseType == "" {
 			releaseType, resolvedVersion, err = prompt.SelectVersionMode()
 			if err != nil {
-				return err
+				return "", release.Plan{}, err
 			}
 		}
 		if resolvedVersion == "" {
 			resolvedVersion, err = nextVersion(releaseType, latest)
 		}
 		if err != nil {
-			return err
+			return "", release.Plan{}, err
 		}
 	}
 	if err := version.Validate(resolvedVersion); err != nil {
-		return err
+		return "", release.Plan{}, err
 	}
 
 	plan := release.Plan{
-		Module:    module,
-		Version:   resolvedVersion,
-		Tag:       module.TagFor(resolvedVersion),
-		LatestTag: latest,
+		Module:        module,
+		Version:       resolvedVersion,
+		Tag:           module.TagFor(resolvedVersion),
+		LatestTag:     latest,
+		UpdateHooks:   moduleConfig.Update,
+		CheckHooks:    moduleConfig.Checks,
+		CommitMessage: moduleConfig.Commit,
 	}
-	return release.PrintPlan(out, plan)
+	if tagExists(plan.Tag, tags) {
+		return "", release.Plan{}, fmt.Errorf("target tag %q already exists", plan.Tag)
+	}
+	return root, plan, nil
+}
+
+func tagExists(tag string, tags []string) bool {
+	for _, existing := range tags {
+		if existing == tag {
+			return true
+		}
+	}
+	return false
 }
 
 func nextVersion(typ string, latest string) (string, error) {

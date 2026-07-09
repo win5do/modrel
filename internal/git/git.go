@@ -32,6 +32,47 @@ func Tags(ctx context.Context, dir string) ([]string, error) {
 	return tags, nil
 }
 
+func IsClean(ctx context.Context, dir string) (bool, error) {
+	out, err := Status(ctx, dir)
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(out) == "", nil
+}
+
+func Status(ctx context.Context, dir string) (string, error) {
+	return run(ctx, dir, "status", "--porcelain")
+}
+
+func Diff(ctx context.Context, dir string) (string, error) {
+	return run(ctx, dir, "diff", "--stat")
+}
+
+func AddAll(ctx context.Context, dir string) error {
+	_, err := run(ctx, dir, "add", "--all")
+	return err
+}
+
+func Commit(ctx context.Context, dir string, message string) error {
+	_, err := run(ctx, dir, "commit", "-m", message)
+	return err
+}
+
+func Tag(ctx context.Context, dir string, tag string) error {
+	_, err := run(ctx, dir, "tag", tag)
+	return err
+}
+
+func PushHEAD(ctx context.Context, dir string) error {
+	_, err := run(ctx, dir, "push", "origin", "HEAD")
+	return err
+}
+
+func PushTag(ctx context.Context, dir string, tag string) error {
+	_, err := run(ctx, dir, "push", "origin", tag)
+	return err
+}
+
 func run(ctx context.Context, dir string, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = dir
