@@ -88,8 +88,9 @@ func Apply(ctx context.Context, out io.Writer, repoRoot string, plan Plan, opts 
 		return fmt.Errorf("worktree is not clean")
 	}
 
+	env := hookEnv(repoRoot, plan)
 	for _, hook := range plan.UpdateHooks {
-		if err := runCommand(ctx, out, plan.Module.Dir, "update hook", hook); err != nil {
+		if err := runCommand(ctx, out, plan.Module.Dir, "update hook", hook, env); err != nil {
 			return err
 		}
 	}
@@ -113,7 +114,7 @@ func Apply(ctx context.Context, out io.Writer, repoRoot string, plan Plan, opts 
 	}
 
 	for _, check := range plan.CheckHooks {
-		if err := runCommand(ctx, out, plan.Module.Dir, "check", check); err != nil {
+		if err := runCommand(ctx, out, plan.Module.Dir, "check", check, env); err != nil {
 			return err
 		}
 	}
@@ -142,16 +143,29 @@ func Apply(ctx context.Context, out io.Writer, repoRoot string, plan Plan, opts 
 	return nil
 }
 
-func runCommand(ctx context.Context, out io.Writer, dir string, label string, command string) error {
+func runCommand(ctx context.Context, out io.Writer, dir string, label string, command string, env []string) error {
 	fmt.Fprintf(out, "Running %s: %s\n", label, command)
 	cmd := exec.CommandContext(ctx, "sh", "-c", command)
 	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), env...)
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("%s failed in %s: %w", label, filepath.ToSlash(dir), err)
 	}
 	return nil
+}
+
+func hookEnv(repoRoot string, plan Plan) []string {
+	return []string{
+		"MODREL_REPO_ROOT=" + repoRoot,
+		"MODREL_MODULE=" + plan.Module.Name,
+		"MODREL_MODULE_DIR=" + plan.Module.Dir,
+		"MODREL_MODULE_PATH=" + plan.Module.ModulePath,
+		"MODREL_VERSION=" + plan.Version,
+		"MODREL_TAG=" + plan.Tag,
+		"MODREL_LATEST_TAG=" + plan.LatestTag,
+	}
 }
 
 func commitMessage(plan Plan) string {
