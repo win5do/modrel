@@ -17,6 +17,10 @@ type Module struct {
 	ModulePath string
 }
 
+type Options struct {
+	Exclude []string
+}
+
 func (m Module) TagPrefix() string {
 	if m.RelPath == "." {
 		return ""
@@ -28,13 +32,18 @@ func (m Module) TagFor(version string) string {
 	return m.TagPrefix() + version
 }
 
-func Discover(root string) ([]Module, error) {
+func Discover(root string, opts ...Options) ([]Module, error) {
+	options := Options{}
+	if len(opts) > 0 {
+		options = opts[0]
+	}
+
 	var modules []Module
 	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if entry.IsDir() && shouldSkipDir(root, path) {
+		if entry.IsDir() && shouldSkipDir(root, path, options) {
 			return filepath.SkipDir
 		}
 		if entry.IsDir() || entry.Name() != "go.mod" {
@@ -111,7 +120,7 @@ func parseModule(root, goModPath string) (Module, error) {
 	}, nil
 }
 
-func shouldSkipDir(root, path string) bool {
+func shouldSkipDir(root, path string, opts Options) bool {
 	name := filepath.Base(path)
 	if name == ".git" || name == "vendor" || name == "testdata" {
 		return true
@@ -120,7 +129,11 @@ func shouldSkipDir(root, path string) bool {
 	if err != nil {
 		return false
 	}
-	return strings.HasPrefix(filepath.ToSlash(rel), ".git/")
+	rel = filepath.ToSlash(rel)
+	if strings.HasPrefix(rel, ".git/") {
+		return true
+	}
+	return matchesExclude(rel, opts.Exclude)
 }
 
 func samePath(left, right string) bool {
@@ -130,4 +143,26 @@ func samePath(left, right string) bool {
 		return left == right
 	}
 	return leftAbs == rightAbs
+}
+
+func matchesExclude(rel string, patterns []string) bool {
+	for _, pattern := range patterns {
+		pattern = filepath.ToSlash(strings.TrimSpace(pattern))
+		if pattern == "" {
+			continue
+		}
+		if pattern == rel {
+			return true
+		}
+		if strings.HasSuffix(pattern, "/**") {
+			prefix := strings.TrimSuffix(pattern, "/**")
+			if rel == prefix || strings.HasPrefix(rel, prefix+"/") {
+				return true
+			}
+		}
+		if ok, _ := filepath.Match(pattern, rel); ok {
+			return true
+		}
+	}
+	return false
 }

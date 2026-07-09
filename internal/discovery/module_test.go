@@ -52,6 +52,21 @@ func TestDiscoverAndResolveModules(t *testing.T) {
 	}
 }
 
+func TestDiscoverWithConfiguredExcludes(t *testing.T) {
+	root := t.TempDir()
+	writeGoMod(t, filepath.Join(root, "go.mod"), "example.com/root")
+	writeGoMod(t, filepath.Join(root, "third_party", "tool", "go.mod"), "example.com/root/third_party/tool")
+	writeGoMod(t, filepath.Join(root, "cmd", "demo", "go.mod"), "example.com/root/cmd/demo")
+
+	modules, err := Discover(root, Options{Exclude: []string{"third_party/**", "cmd/demo"}})
+	if err != nil {
+		t.Fatalf("Discover returned error: %v", err)
+	}
+	if len(modules) != 1 || modules[0].Name != "." {
+		t.Fatalf("modules = %#v, want only root", modules)
+	}
+}
+
 func writeGoMod(t *testing.T, path string, module string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

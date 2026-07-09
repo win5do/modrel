@@ -51,4 +51,23 @@ modules:
 			t.Fatalf("boot commit = %q", boot.Commit)
 		}
 	})
+
+	t.Run("loads discovery excludes", func(t *testing.T) {
+		root := t.TempDir()
+		content := []byte(`discovery:
+  exclude:
+    - "third_party/**"
+`)
+		if err := os.WriteFile(filepath.Join(root, ".modrel.yaml"), content, 0o644); err != nil {
+			t.Fatalf("WriteFile returned error: %v", err)
+		}
+
+		cfg, err := Load(root)
+		if err != nil {
+			t.Fatalf("Load returned error: %v", err)
+		}
+		if len(cfg.Discovery.Exclude) != 1 || cfg.Discovery.Exclude[0] != "third_party/**" {
+			t.Fatalf("discovery excludes = %#v", cfg.Discovery.Exclude)
+		}
+	})
 }

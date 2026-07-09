@@ -9,8 +9,13 @@ import (
 )
 
 type Config struct {
-	Defaults ModuleConfig            `yaml:"defaults"`
-	Modules  map[string]ModuleConfig `yaml:"modules"`
+	Discovery DiscoveryConfig         `yaml:"discovery"`
+	Defaults  ModuleConfig            `yaml:"defaults"`
+	Modules   map[string]ModuleConfig `yaml:"modules"`
+}
+
+type DiscoveryConfig struct {
+	Exclude []string `yaml:"exclude"`
 }
 
 type ModuleConfig struct {
