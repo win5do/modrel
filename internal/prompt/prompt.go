@@ -70,3 +70,17 @@ func SelectVersionMode() (releaseType string, manualVersion string, err error) {
 	}
 	return manual, manualVersion, nil
 }
+
+func ConfirmApply(tag string) (bool, error) {
+	confirmed := false
+	err := huh.NewConfirm().
+		Title("Apply release " + tag + "?").
+		Affirmative("Apply").
+		Negative("Cancel").
+		Value(&confirmed).
+		Run()
+	if err != nil {
+		return false, err
+	}
+	return confirmed, nil
+}

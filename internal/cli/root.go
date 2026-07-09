@@ -19,6 +19,8 @@ type options struct {
 	version string
 	typ     string
 	noPush  bool
+	dryRun  bool
+	yes     bool
 }
 
 // NewRootCommand builds the modrel command tree.
@@ -90,7 +92,7 @@ func newPlanCommand() *cobra.Command {
 }
 
 func newApplyCommand() *cobra.Command {
-	opts := &options{noPush: true}
+	opts := &options{}
 	cmd := &cobra.Command{
 		Use:   "apply [path]",
 		Short: "Apply a release plan by committing and tagging",
@@ -107,12 +109,26 @@ func newApplyCommand() *cobra.Command {
 			if err := release.PrintPlan(cmd.OutOrStdout(), plan); err != nil {
 				return err
 			}
-			return release.Apply(cmd.Context(), cmd.OutOrStdout(), repoRoot, plan, release.ApplyOptions{NoPush: opts.noPush})
+			if !opts.yes && !opts.dryRun {
+				confirmed, err := prompt.ConfirmApply(plan.Tag)
+				if err != nil {
+					return err
+				}
+				if !confirmed {
+					return fmt.Errorf("release cancelled")
+				}
+			}
+			return release.Apply(cmd.Context(), cmd.OutOrStdout(), repoRoot, plan, release.ApplyOptions{
+				NoPush: opts.noPush,
+				DryRun: opts.dryRun,
+			})
 		},
 	}
 	cmd.Flags().StringVar(&opts.version, "version", "", "release version, for example v1.2.3 or v1.2.3-rc.1")
 	cmd.Flags().StringVar(&opts.typ, "type", "", "version type to propose when --version is omitted: stable or rc")
-	cmd.Flags().BoolVar(&opts.noPush, "no-push", true, "create commit and tag locally without pushing")
+	cmd.Flags().BoolVar(&opts.noPush, "no-push", false, "create commit and tag locally without pushing")
+	cmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "print the release plan without changing files")
+	cmd.Flags().BoolVar(&opts.yes, "yes", false, "skip confirmation prompts")
 	return cmd
 }
 
@@ -128,6 +144,15 @@ func buildPlan(ctx context.Context, target string, opts *options) (string, relea
 	root, err := git.Root(ctx, ".")
 	if err != nil {
 		return "", release.Plan{}, err
+	}
+	hasOrigin, err := git.HasRemote(ctx, root, "origin")
+	if err != nil {
+		return "", release.Plan{}, err
+	}
+	if hasOrigin {
+		if err := git.FetchTags(ctx, root, "origin"); err != nil {
+			return "", release.Plan{}, err
+		}
 	}
 
 	modules, err := discovery.Discover(root)

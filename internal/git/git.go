@@ -32,6 +32,24 @@ func Tags(ctx context.Context, dir string) ([]string, error) {
 	return tags, nil
 }
 
+func HasRemote(ctx context.Context, dir string, name string) (bool, error) {
+	out, err := run(ctx, dir, "remote")
+	if err != nil {
+		return false, err
+	}
+	for _, line := range strings.Split(out, "\n") {
+		if strings.TrimSpace(line) == name {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func FetchTags(ctx context.Context, dir string, remote string) error {
+	_, err := run(ctx, dir, "fetch", "--tags", "--prune", remote)
+	return err
+}
+
 func IsClean(ctx context.Context, dir string) (bool, error) {
 	out, err := Status(ctx, dir)
 	if err != nil {

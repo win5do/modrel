@@ -71,9 +71,15 @@ Steps:
 
 type ApplyOptions struct {
 	NoPush bool
+	DryRun bool
 }
 
 func Apply(ctx context.Context, out io.Writer, repoRoot string, plan Plan, opts ApplyOptions) error {
+	if opts.DryRun {
+		fmt.Fprintln(out, "Dry run: no files, commits, tags, or remotes will be changed.")
+		return nil
+	}
+
 	clean, err := git.IsClean(ctx, repoRoot)
 	if err != nil {
 		return err
