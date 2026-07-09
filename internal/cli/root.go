@@ -9,6 +9,7 @@ import (
 
 	"github.com/win5do/modrel/internal/discovery"
 	"github.com/win5do/modrel/internal/git"
+	"github.com/win5do/modrel/internal/prompt"
 	"github.com/win5do/modrel/internal/release"
 	"github.com/win5do/modrel/internal/version"
 )
@@ -27,7 +28,7 @@ func NewRootCommand() *cobra.Command {
 		Short: "Release Go modules from single-module and multi-module repositories",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			target := "."
+			target := ""
 			if len(args) == 1 {
 				target = args[0]
 			}
@@ -36,7 +37,7 @@ func NewRootCommand() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&opts.version, "version", "", "release version, for example v1.2.3 or v1.2.3-rc.1")
-	cmd.Flags().StringVar(&opts.typ, "type", "stable", "version type to propose when --version is omitted: stable or rc")
+	cmd.Flags().StringVar(&opts.typ, "type", "", "version type to propose when --version is omitted: stable or rc")
 
 	cmd.AddCommand(newListCommand())
 	cmd.AddCommand(newPlanCommand())
@@ -73,7 +74,7 @@ func newPlanCommand() *cobra.Command {
 		Short: "Print a release plan without changing files",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			target := "."
+			target := ""
 			if len(args) == 1 {
 				target = args[0]
 			}
@@ -81,7 +82,7 @@ func newPlanCommand() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&opts.version, "version", "", "release version, for example v1.2.3 or v1.2.3-rc.1")
-	cmd.Flags().StringVar(&opts.typ, "type", "stable", "version type to propose when --version is omitted: stable or rc")
+	cmd.Flags().StringVar(&opts.typ, "type", "", "version type to propose when --version is omitted: stable or rc")
 	return cmd
 }
 
@@ -96,9 +97,17 @@ func runPlan(ctx context.Context, out io.Writer, target string, opts *options) e
 		return err
 	}
 
-	module, err := discovery.Resolve(root, modules, target)
-	if err != nil {
-		return err
+	var module discovery.Module
+	if target == "" {
+		module, err = prompt.SelectModule(modules)
+		if err != nil {
+			return err
+		}
+	} else {
+		module, err = discovery.Resolve(root, modules, target)
+		if err != nil {
+			return err
+		}
 	}
 
 	tags, err := git.Tags(ctx, root)
@@ -109,7 +118,16 @@ func runPlan(ctx context.Context, out io.Writer, target string, opts *options) e
 	latest := release.LatestTag(module, tags)
 	resolvedVersion := opts.version
 	if resolvedVersion == "" {
-		resolvedVersion, err = nextVersion(opts.typ, latest)
+		releaseType := opts.typ
+		if releaseType == "" {
+			releaseType, resolvedVersion, err = prompt.SelectVersionMode()
+			if err != nil {
+				return err
+			}
+		}
+		if resolvedVersion == "" {
+			resolvedVersion, err = nextVersion(releaseType, latest)
+		}
 		if err != nil {
 			return err
 		}
