@@ -392,12 +392,13 @@ internal/version    strict version parsing and next-version logic
 - Run check hooks.
 - Create commit.
 - Create tag.
-- Support `--no-push`.
+- Keep apply local by default.
 
 ### Milestone 4: Push and safety options
 
-- Push commit and tag.
+- Push commit and tag only when `--push` is set.
 - Add `--dry-run`.
+- Add `--push`.
 - Add `--yes`.
 - Add config file support.
 - Improve errors and recovery hints.

@@ -19,6 +19,7 @@ type options struct {
 	version string
 	typ     string
 	noPush  bool
+	push    bool
 	dryRun  bool
 	yes     bool
 }
@@ -123,14 +124,15 @@ func newApplyCommand() *cobra.Command {
 				}
 			}
 			return release.Apply(cmd.Context(), cmd.OutOrStdout(), repoRoot, plan, release.ApplyOptions{
-				NoPush: opts.noPush,
+				Push:   opts.push && !opts.noPush,
 				DryRun: opts.dryRun,
 			})
 		},
 	}
 	cmd.Flags().StringVar(&opts.version, "version", "", "release version, for example v1.2.3 or v1.2.3-rc.1")
 	cmd.Flags().StringVar(&opts.typ, "type", "", "version type to propose when --version is omitted: stable or rc")
-	cmd.Flags().BoolVar(&opts.noPush, "no-push", false, "create commit and tag locally without pushing")
+	cmd.Flags().BoolVar(&opts.push, "push", false, "push the release commit and tag after creating them")
+	cmd.Flags().BoolVar(&opts.noPush, "no-push", false, "deprecated: releases are local by default unless --push is set")
 	cmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "print the release plan without changing files")
 	cmd.Flags().BoolVar(&opts.yes, "yes", false, "skip confirmation prompts")
 	return cmd

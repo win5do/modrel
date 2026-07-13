@@ -30,8 +30,9 @@ Apply a release:
 
 ```bash
 modrel apply . --version v1.2.3
-modrel apply boot --type rc --no-push
+modrel apply boot --type rc
 modrel apply database/kafka --version v1.2.3 --dry-run --yes
+modrel apply . --version v1.2.3 --push
 ```
 
 The root command is a planning shortcut:
@@ -156,6 +157,5 @@ perl -0pi -e \
 ```text
 --dry-run   Print the plan without changing files, commits, tags, or remotes.
 --yes       Skip confirmation prompts.
---no-push   Create commit and tag locally, but do not push.
+--push      Push the release commit and tag after creating them.
 ```
-

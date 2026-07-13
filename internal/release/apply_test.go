@@ -37,7 +37,7 @@ func TestApplyCreatesCommitAndTag(t *testing.T) {
 	}
 
 	var out bytes.Buffer
-	err := Apply(context.Background(), &out, root, plan, ApplyOptions{NoPush: true})
+	err := Apply(context.Background(), &out, root, plan, ApplyOptions{})
 	if err != nil {
 		t.Fatalf("Apply returned error: %v\noutput:\n%s", err, out.String())
 	}

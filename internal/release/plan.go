@@ -70,7 +70,7 @@ Steps:
 }
 
 type ApplyOptions struct {
-	NoPush bool
+	Push   bool
 	DryRun bool
 }
 
@@ -129,8 +129,8 @@ func Apply(ctx context.Context, out io.Writer, repoRoot string, plan Plan, opts 
 		return err
 	}
 
-	if opts.NoPush {
-		fmt.Fprintf(out, "Created commit and tag locally. Skipped push because --no-push was set.\n")
+	if !opts.Push {
+		fmt.Fprintf(out, "Created commit and tag locally. Use --push to push them.\n")
 		return nil
 	}
 	if err := git.PushHEAD(ctx, repoRoot); err != nil {
