@@ -30,16 +30,16 @@ Print a release plan:
 
 ```bash
 modrel plan .
-modrel plan boot --type rc
-modrel plan database/kafka --version v1.2.3
+modrel plan examples/hello --type rc
+modrel plan examples/hello --version v1.2.3
 ```
 
 Apply a release:
 
 ```bash
 modrel apply . --version v1.2.3
-modrel apply boot --type rc
-modrel apply database/kafka --version v1.2.3 --dry-run --yes
+modrel apply examples/hello --type rc
+modrel apply examples/hello --version v1.2.3 --dry-run --yes
 modrel apply . --version v1.2.3 --push
 ```
 
@@ -91,9 +91,9 @@ path/v1.2.3-rc.1
 Examples:
 
 ```text
-boot/v1.2.3
-database/kafka/v1.2.3
-configcenter/configx/plugin/source/ark/v1.2.3-rc.1
+v1.2.3
+examples/hello/v1.2.3
+examples/hello/v1.2.3-rc.1
 ```
 
 ## Configuration
@@ -113,15 +113,15 @@ defaults:
 modules:
   ".":
     update:
-      - "./scripts/release/update-main.sh"
+      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh" internal/buildinfo/version.go'
     commit: "release: {{ .Version }}"
 
-  "boot":
+  "examples/hello":
     update:
-      - "../scripts/release/update-boot.sh"
+      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh" version.go'
     checks:
       - "go test ./..."
-    commit: "release(boot): {{ .Version }}"
+    commit: "release(examples/hello): {{ .Version }}"
 ```
 
 Without config, `modrel` uses:
@@ -134,20 +134,7 @@ submodule commit: release(<path>): <version>
 
 `apply` requires release file changes. In normal use, provide an update hook that modifies the version file, `go.mod`, or other release metadata.
 
-This repository uses `modrel` for both its root module and the example module at `examples/hello`. Both modules keep their current release version in a Go `Version` constant, updated by `scripts/release/update-version.sh`:
-
-```yaml
-modules:
-  ".":
-    update:
-      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh" internal/buildinfo/version.go'
-
-  "examples/hello":
-    update:
-      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh" version.go'
-```
-
-Their tags are `vX.Y.Z` and `examples/hello/vX.Y.Z`, respectively.
+This repository uses that configuration for both its root module and the example module at `examples/hello`. Both modules keep their current release version in a Go `Version` constant. Their tags are `vX.Y.Z` and `examples/hello/vX.Y.Z`, respectively.
 
 ## Release Workflow
 
