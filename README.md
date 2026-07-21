@@ -149,6 +149,36 @@ modules:
 
 Their tags are `vX.Y.Z` and `examples/hello/vX.Y.Z`, respectively.
 
+## Release Workflow
+
+`plan` and `apply` first fetch tags from `origin` when that remote exists. This ensures version selection and duplicate-tag checks use the latest remote state.
+
+```mermaid
+flowchart TD
+    A[Resolve Git repository root] --> B{Does origin exist?}
+    B -- Yes --> C[Fetch and prune tags from origin]
+    B -- No --> D[Load config and discover modules]
+    C --> D
+    D --> E[Resolve version and reject duplicate tag]
+    E --> F[Print plan and confirm]
+    F --> G{Dry run?}
+    G -- Yes --> H[Stop without changing anything]
+    G -- No --> I[Require a clean worktree]
+    I --> J[Run update hooks]
+    J --> K{Were files changed?}
+    K -- No --> L[Fail: release produced no changes]
+    K -- Yes --> M[Show status and diff]
+    M --> N[Run check hooks]
+    N --> O[Stage and commit all changes]
+    O --> P[Create the module tag]
+    P --> Q{Push enabled?}
+    Q -- No --> R[Finish with local commit and tag]
+    Q -- Yes --> S[Push HEAD to origin]
+    S --> T[Push tag to origin]
+```
+
+Any failed update or check stops the release before the commit and tag are created. Changes already made by update hooks remain in the worktree for inspection.
+
 ## Hook Environment
 
 Hooks run from the selected module directory and receive:
@@ -163,17 +193,48 @@ MODREL_TAG
 MODREL_LATEST_TAG
 ```
 
-Example update hook:
+An update hook should validate its inputs, update only its intended file, fail when the expected source marker is missing, and replace the file atomically. For example:
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$MODREL_REPO_ROOT"
-perl -0pi -e \
-  "s/const SDKVersion = \"[^\"]+\"/const SDKVersion = \"$MODREL_VERSION\"/" \
-  internal/version/version.go
+: "${MODREL_MODULE_DIR:?MODREL_MODULE_DIR is required}"
+: "${MODREL_VERSION:?MODREL_VERSION is required}"
+
+version_file="$MODREL_MODULE_DIR/internal/buildinfo/version.go"
+temporary_file="$version_file.tmp"
+updated=false
+
+trap 'rm -f "$temporary_file"' EXIT
+
+while IFS= read -r line || [[ -n "$line" ]]; do
+  if [[ "$line" =~ ^const[[:space:]]+Version[[:space:]]*= ]]; then
+    printf 'const Version = "%s"\n' "$MODREL_VERSION"
+    updated=true
+  else
+    printf '%s\n' "$line"
+  fi
+done < "$version_file" > "$temporary_file"
+
+if [[ "$updated" != true ]]; then
+  echo "Version constant not found in $version_file" >&2
+  exit 1
+fi
+
+mv "$temporary_file" "$version_file"
+trap - EXIT
 ```
+
+The normal hook lifecycle is:
+
+1. Enable strict Bash error handling.
+2. Validate the required `MODREL_*` environment variables.
+3. Resolve files from `MODREL_MODULE_DIR` or `MODREL_REPO_ROOT`.
+4. Write the new content to a temporary file.
+5. Verify that the intended value was actually updated.
+6. Atomically replace the original file.
+7. Let the configured check hooks validate the updated module.
 
 ## Safety Flags
 
