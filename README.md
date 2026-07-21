@@ -126,6 +126,21 @@ submodule commit: release(<path>): <version>
 
 `apply` requires release file changes. In normal use, provide an update hook that modifies the version file, `go.mod`, or other release metadata.
 
+This repository uses `modrel` for both its root module and the example module at `examples/hello`. Both modules keep their current release version in a `VERSION` file, updated by `scripts/release/update-version.sh`:
+
+```yaml
+modules:
+  ".":
+    update:
+      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh"'
+
+  "examples/hello":
+    update:
+      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh"'
+```
+
+Their tags are `vX.Y.Z` and `examples/hello/vX.Y.Z`, respectively.
+
 ## Hook Environment
 
 Hooks run from the selected module directory and receive:
