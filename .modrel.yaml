@@ -5,10 +5,10 @@ defaults:
 modules:
   ".":
     update:
-      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh"'
+      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh" internal/buildinfo/version.go'
     commit: "release: {{ .Version }}"
 
   "examples/hello":
     update:
-      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh"'
+      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh" version.go'
     commit: "release(examples/hello): {{ .Version }}"

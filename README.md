@@ -20,6 +20,12 @@ List discovered modules:
 modrel list
 ```
 
+Print the installed modrel version:
+
+```bash
+modrel version
+```
+
 Print a release plan:
 
 ```bash
@@ -128,17 +134,17 @@ submodule commit: release(<path>): <version>
 
 `apply` requires release file changes. In normal use, provide an update hook that modifies the version file, `go.mod`, or other release metadata.
 
-This repository uses `modrel` for both its root module and the example module at `examples/hello`. Both modules keep their current release version in a `VERSION` file, updated by `scripts/release/update-version.sh`:
+This repository uses `modrel` for both its root module and the example module at `examples/hello`. Both modules keep their current release version in a Go `Version` constant, updated by `scripts/release/update-version.sh`:
 
 ```yaml
 modules:
   ".":
     update:
-      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh"'
+      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh" internal/buildinfo/version.go'
 
   "examples/hello":
     update:
-      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh"'
+      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh" version.go'
 ```
 
 Their tags are `vX.Y.Z` and `examples/hello/vX.Y.Z`, respectively.
