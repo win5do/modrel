@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/win5do/modrel/internal/buildinfo"
 	"github.com/win5do/modrel/internal/config"
 	"github.com/win5do/modrel/internal/discovery"
 	"github.com/win5do/modrel/internal/git"
@@ -47,8 +48,20 @@ func NewRootCommand() *cobra.Command {
 	cmd.AddCommand(newListCommand())
 	cmd.AddCommand(newPlanCommand())
 	cmd.AddCommand(newApplyCommand())
+	cmd.AddCommand(newVersionCommand())
 
 	return cmd
+}
+
+func newVersionCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "Print the modrel version",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Fprintln(cmd.OutOrStdout(), buildinfo.Version)
+		},
+	}
 }
 
 func newListCommand() *cobra.Command {
