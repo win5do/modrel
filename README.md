@@ -7,8 +7,10 @@ It discovers modules from `go.mod`, follows Go module tag conventions, and leave
 ## Install From Source
 
 ```bash
-go install ./cmd/modrel
+make install
 ```
+
+This installs `modrel` to `$(go env GOPATH)/bin/modrel`.
 
 ## Commands
 
