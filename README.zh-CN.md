@@ -9,7 +9,7 @@
 ## 从源码安装
 
 ```bash
-make install
+just install
 ```
 
 该命令会将 `modrel` 安装到 `$(go env GOPATH)/bin/modrel`。

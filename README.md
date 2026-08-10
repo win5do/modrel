@@ -9,7 +9,7 @@ It discovers modules from `go.mod`, follows Go module tag conventions, and leave
 ## Install From Source
 
 ```bash
-make install
+just install
 ```
 
 This installs `modrel` to `$(go env GOPATH)/bin/modrel`.
