@@ -1,3 +1,5 @@
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 # modrel
 
 `modrel` releases Go modules in single-module and multi-module repositories.
