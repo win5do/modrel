@@ -18,7 +18,7 @@ type Module struct {
 }
 
 type Options struct {
-	Exclude []string
+	Excludes []string
 }
 
 func (m Module) TagPrefix() string {
@@ -133,7 +133,7 @@ func shouldSkipDir(root, path string, opts Options) bool {
 	if strings.HasPrefix(rel, ".git/") {
 		return true
 	}
-	return matchesExclude(rel, opts.Exclude)
+	return matchesExclude(rel, opts.Excludes)
 }
 
 func samePath(left, right string) bool {

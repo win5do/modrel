@@ -20,18 +20,15 @@ func TestConfigForModule(t *testing.T) {
 
 	t.Run("merges defaults and module overrides", func(t *testing.T) {
 		root := t.TempDir()
-		content := []byte(`defaults:
-  checks:
-    - "go test ./..."
-modules:
-  "boot":
-    update:
-      - "./update-boot.sh"
-    checks:
-      - "go test ./boot/..."
-    commit: "release(boot): {{ .Version }}"
+		content := []byte(`[defaults]
+checks = ["go test ./..."]
+
+[modules.boot]
+updates = ["./update-boot.sh"]
+checks = ["go test ./boot/..."]
+commit = "release(boot): {{ .Version }}"
 `)
-		if err := os.WriteFile(filepath.Join(root, ".modrel.yaml"), content, 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(root, ".modrel.toml"), content, 0o644); err != nil {
 			t.Fatalf("WriteFile returned error: %v", err)
 		}
 
@@ -41,8 +38,8 @@ modules:
 		}
 
 		boot := cfg.ForModule("boot")
-		if len(boot.Update) != 1 || boot.Update[0] != "./update-boot.sh" {
-			t.Fatalf("boot update = %#v", boot.Update)
+		if len(boot.Updates) != 1 || boot.Updates[0] != "./update-boot.sh" {
+			t.Fatalf("boot updates = %#v", boot.Updates)
 		}
 		if len(boot.Checks) != 1 || boot.Checks[0] != "go test ./boot/..." {
 			t.Fatalf("boot checks = %#v", boot.Checks)
@@ -54,11 +51,10 @@ modules:
 
 	t.Run("loads discovery excludes", func(t *testing.T) {
 		root := t.TempDir()
-		content := []byte(`discovery:
-  exclude:
-    - "third_party/**"
+		content := []byte(`[discovery]
+excludes = ["third_party/**"]
 `)
-		if err := os.WriteFile(filepath.Join(root, ".modrel.yaml"), content, 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(root, ".modrel.toml"), content, 0o644); err != nil {
 			t.Fatalf("WriteFile returned error: %v", err)
 		}
 
@@ -66,8 +62,8 @@ modules:
 		if err != nil {
 			t.Fatalf("Load returned error: %v", err)
 		}
-		if len(cfg.Discovery.Exclude) != 1 || cfg.Discovery.Exclude[0] != "third_party/**" {
-			t.Fatalf("discovery excludes = %#v", cfg.Discovery.Exclude)
+		if len(cfg.Discovery.Excludes) != 1 || cfg.Discovery.Excludes[0] != "third_party/**" {
+			t.Fatalf("discovery excludes = %#v", cfg.Discovery.Excludes)
 		}
 	})
 }

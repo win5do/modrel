@@ -58,7 +58,7 @@ func TestDiscoverWithConfiguredExcludes(t *testing.T) {
 	writeGoMod(t, filepath.Join(root, "third_party", "tool", "go.mod"), "example.com/root/third_party/tool")
 	writeGoMod(t, filepath.Join(root, "cmd", "demo", "go.mod"), "example.com/root/cmd/demo")
 
-	modules, err := Discover(root, Options{Exclude: []string{"third_party/**", "cmd/demo"}})
+	modules, err := Discover(root, Options{Excludes: []string{"third_party/**", "cmd/demo"}})
 	if err != nil {
 		t.Fatalf("Discover returned error: %v", err)
 	}

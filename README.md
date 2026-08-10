@@ -98,30 +98,27 @@ examples/hello/v1.2.3-rc.1
 
 ## Configuration
 
-Configuration is optional. Put `.modrel.yaml` at the git repository root.
+Configuration is optional. Put `.modrel.toml` at the git repository root.
 
-```yaml
-discovery:
-  exclude:
-    - "third_party/**"
-    - "cmd/demo"
+```toml
+[discovery]
+excludes = ["third_party/**", "cmd/demo"]
 
-defaults:
-  checks:
-    - "go test ./..."
+[defaults]
+checks = ["go test ./..."]
 
-modules:
-  ".":
-    update:
-      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh" internal/buildinfo/version.go'
-    commit: "release: {{ .Version }}"
+[modules."."]
+updates = [
+  'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh" internal/buildinfo/version.go',
+]
+commit = "release: {{ .Version }}"
 
-  "examples/hello":
-    update:
-      - 'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh" version.go'
-    checks:
-      - "go test ./..."
-    commit: "release(examples/hello): {{ .Version }}"
+[modules."examples/hello"]
+updates = [
+  'sh "$MODREL_REPO_ROOT/scripts/release/update-version.sh" version.go',
+]
+checks = ["go test ./..."]
+commit = "release(examples/hello): {{ .Version }}"
 ```
 
 Without config, `modrel` uses:
