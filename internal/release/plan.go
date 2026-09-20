@@ -33,7 +33,7 @@ func LatestTag(module discovery.Module, tags []string) string {
 			continue
 		}
 		raw := strings.TrimPrefix(tag, prefix)
-		if version.Validate(raw) == nil {
+		if version.Validate(raw) == nil && module.CheckVersion(raw) == nil {
 			matches = append(matches, tag)
 		}
 	}

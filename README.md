@@ -98,6 +98,13 @@ examples/hello/v1.2.3
 examples/hello/v1.2.3-rc.1
 ```
 
+Major-version directories follow Go module conventions: a module in
+`database/dmq/v2` declaring `example.com/repo/database/dmq/v2` uses
+`database/dmq/v2.4.1`, not `database/dmq/v2/v2.4.1`. A root-level `v2`
+directory uses plain `v2.x.y` tags. Historical tags are filtered by the module's
+major version, and explicit versions must match its module path. Without prior
+tags, a `/v2` module starts at `v2.0.0` (or `v2.0.0-rc.1`).
+
 ## Configuration
 
 Configuration is optional. Put `.modrel.toml` at the git repository root.

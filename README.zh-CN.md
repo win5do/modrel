@@ -98,6 +98,12 @@ examples/hello/v1.2.3
 examples/hello/v1.2.3-rc.1
 ```
 
+大版本目录遵循 Go module 规则：目录 `database/dmq/v2` 中声明
+`example.com/repo/database/dmq/v2` 的模块使用 `database/dmq/v2.4.1`，
+而不是 `database/dmq/v2/v2.4.1`。仓库根下的 `v2` 目录使用 `v2.x.y` 标签。
+查找历史标签时只匹配当前模块的大版本，手动指定版本也必须与模块路径一致。
+没有历史标签时，`/v2` 模块从 `v2.0.0`（或 `v2.0.0-rc.1`）开始。
+
 ## 配置
 
 配置是可选的。将 `.modrel.toml` 放在 Git 仓库根目录下。

@@ -39,3 +39,19 @@ func TestCommitMessage(t *testing.T) {
 		t.Fatalf("templated commitMessage = %q", got)
 	}
 }
+
+func TestLatestTagMajorDirectory(t *testing.T) {
+	tags := []string{"database/dmq/v1.9.0", "database/dmq/v2.4.0", "database/dmq/v2.4.1-rc.1", "database/dmq/v3.0.0", "database/dmq/v2/v2.9.0"}
+	m := discovery.Module{RelPath: "database/dmq/v2", ModulePath: "example.com/repo/database/dmq/v2"}
+	if got := LatestTag(m, tags); got != "database/dmq/v2.4.1-rc.1" {
+		t.Fatalf("LatestTag = %s", got)
+	}
+	if err := m.CheckVersion("v3.0.0"); err == nil {
+		t.Fatal("accepted wrong major")
+	}
+	m.RelPath = "database/dmq"
+	m.ModulePath = "example.com/repo/database/dmq"
+	if got := LatestTag(m, tags); got != "database/dmq/v1.9.0" {
+		t.Fatalf("v1 LatestTag = %s", got)
+	}
+}

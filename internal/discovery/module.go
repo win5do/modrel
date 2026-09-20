@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"golang.org/x/mod/modfile"
+	"golang.org/x/mod/module"
 )
 
 type Module struct {
@@ -22,10 +23,19 @@ type Options struct {
 }
 
 func (m Module) TagPrefix() string {
-	if m.RelPath == "." {
+	rel := filepath.ToSlash(m.RelPath)
+	_, major, ok := module.SplitPathVersion(m.ModulePath)
+	if ok && strings.HasPrefix(major, "/v") {
+		if rel == strings.TrimPrefix(major, "/") {
+			rel = "."
+		} else {
+			rel = strings.TrimSuffix(rel, major)
+		}
+	}
+	if rel == "." {
 		return ""
 	}
-	return filepath.ToSlash(m.RelPath) + "/"
+	return rel + "/"
 }
 
 func (m Module) TagFor(version string) string {
@@ -165,4 +175,22 @@ func matchesExclude(rel string, patterns []string) bool {
 		}
 	}
 	return false
+}
+
+// CheckVersion rejects tags belonging to another major version of this module.
+func (m Module) CheckVersion(version string) error {
+	_, major, ok := module.SplitPathVersion(m.ModulePath)
+	if !ok {
+		return fmt.Errorf("invalid module path %q", m.ModulePath)
+	}
+	return module.CheckPathMajor(version, major)
+}
+
+// InitialVersion is the first release version for the module's major line.
+func (m Module) InitialVersion() string {
+	_, major, _ := module.SplitPathVersion(m.ModulePath)
+	if major == "" {
+		return "v0.1.0"
+	}
+	return strings.TrimLeft(strings.TrimSuffix(major, "-unstable"), "/.") + ".0.0"
 }

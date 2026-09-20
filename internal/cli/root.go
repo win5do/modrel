@@ -215,12 +215,22 @@ func buildPlan(ctx context.Context, target string, opts *options) (string, relea
 		}
 		if resolvedVersion == "" {
 			resolvedVersion, err = nextVersion(releaseType, latest)
+			if err == nil && latest == "" {
+				initial := module.InitialVersion()
+				resolvedVersion = initial
+				if releaseType == "rc" {
+					resolvedVersion += "-rc.1"
+				}
+			}
 		}
 		if err != nil {
 			return "", release.Plan{}, err
 		}
 	}
 	if err := version.Validate(resolvedVersion); err != nil {
+		return "", release.Plan{}, err
+	}
+	if err := module.CheckVersion(resolvedVersion); err != nil {
 		return "", release.Plan{}, err
 	}
 

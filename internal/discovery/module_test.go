@@ -77,3 +77,28 @@ func writeGoMod(t *testing.T, path string, module string) {
 		t.Fatalf("WriteFile returned error: %v", err)
 	}
 }
+
+func TestMajorVersionTags(t *testing.T) {
+	for _, tc := range []struct{ dir, path, version, tag string }{
+		{".", "example.com/repo/v2", "v2.1.0", "v2.1.0"},
+		{"v2", "example.com/repo/v2", "v2.1.0", "v2.1.0"},
+		{"database/dmq/v2", "example.com/repo/database/dmq/v2", "v2.4.1", "database/dmq/v2.4.1"},
+		{"database/dmq", "example.com/repo/database/dmq/v2", "v2.4.1-rc.1", "database/dmq/v2.4.1-rc.1"},
+		{"pkg/v10", "example.com/repo/pkg/v10", "v10.0.0", "pkg/v10.0.0"},
+		{"v2/tool", "example.com/repo/v2/tool", "v1.0.0", "v2/tool/v1.0.0"},
+		{"pkg/v2", "example.com/repo/pkg/v3", "v3.0.0", "pkg/v2/v3.0.0"},
+	} {
+		t.Run(tc.dir+tc.path, func(t *testing.T) {
+			m := Module{RelPath: tc.dir, ModulePath: tc.path}
+			if got := m.TagFor(tc.version); got != tc.tag {
+				t.Fatalf("tag = %s, want %s", got, tc.tag)
+			}
+			if err := m.CheckVersion(tc.version); err != nil {
+				t.Fatal(err)
+			}
+			if err := m.CheckVersion(m.InitialVersion()); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
