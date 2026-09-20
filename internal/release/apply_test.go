@@ -83,3 +83,53 @@ func runGit(t *testing.T, dir string, args ...string) string {
 	}
 	return stdout.String()
 }
+
+func TestApplyWithoutUpdateChanges(t *testing.T) {
+	for _, tc := range []struct {
+		name            string
+		updates, checks []string
+		fail, commit    bool
+	}{
+		{name: "no hooks"},
+		{name: "noop update", updates: []string{"true"}, checks: []string{"true"}},
+		{name: "failed check", checks: []string{"exit 1"}, fail: true},
+		{name: "check creates file", checks: []string{"echo checked > checked.txt"}, commit: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			runGit(t, root, "init")
+			runGit(t, root, "config", "user.email", "modrel@example.com")
+			runGit(t, root, "config", "user.name", "modrel test")
+			writeFile(t, filepath.Join(root, "go.mod"), "module example.com/app\n\ngo 1.23\n")
+			runGit(t, root, "add", "--all")
+			runGit(t, root, "commit", "-m", "initial")
+			head := runGit(t, root, "rev-parse", "HEAD")
+			plan := Plan{Module: discovery.Module{Name: ".", Dir: root, RelPath: ".", ModulePath: "example.com/app"}, Version: "v1.0.0", Tag: "v1.0.0", UpdateHooks: tc.updates, CheckHooks: tc.checks}
+			var out bytes.Buffer
+			err := Apply(context.Background(), &out, root, plan, ApplyOptions{})
+			if (err != nil) != tc.fail {
+				t.Fatalf("Apply error = %v; output %s", err, out.String())
+			}
+			after := runGit(t, root, "rev-parse", "HEAD")
+			if (after != head) != tc.commit {
+				t.Fatalf("unexpected HEAD change: %s -> %s", head, after)
+			}
+			tags := strings.TrimSpace(runGit(t, root, "tag", "--list"))
+			if tc.fail {
+				if tags != "" {
+					t.Fatal("failed check created tag")
+				}
+				return
+			}
+			if tags != plan.Tag {
+				t.Fatalf("tags = %q", tags)
+			}
+			if got := runGit(t, root, "rev-parse", plan.Tag+"^{commit}"); got != after {
+				t.Fatal("tag does not point to HEAD")
+			}
+			if got := strings.TrimSpace(runGit(t, root, "status", "--porcelain")); got != "" {
+				t.Fatalf("dirty tree: %s", got)
+			}
+		})
+	}
+}

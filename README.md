@@ -138,7 +138,9 @@ root commit: release: <version>
 submodule commit: release(<path>): <version>
 ```
 
-`apply` requires release file changes. In normal use, provide an update hook that modifies the version file, `go.mod`, or other release metadata.
+`apply` does not require file changes or a version file. Update hooks are optional.
+After checks pass, changed files are committed before tagging; if the worktree
+is unchanged, the tag is created directly on the current HEAD.
 
 This repository uses that configuration for both its root module and the example module at `examples/hello`. Both modules keep their current release version in a Go `Version` constant. Their tags are `vX.Y.Z` and `examples/hello/vX.Y.Z`, respectively.
 
@@ -158,14 +160,14 @@ flowchart TD
     G -- Yes --> H[Stop without changing anything]
     G -- No --> I[Require a clean worktree]
     I --> J[Run update hooks]
-    J --> K{Were files changed?}
-    K -- No --> L[Fail: release produced no changes]
-    K -- Yes --> M[Show status and diff]
+    J --> M[Show status and diff]
     M --> N[Run check hooks]
-    N --> O[Stage and commit all changes]
-    O --> P[Create the module tag]
+    N --> K{Were files changed?}
+    K -- Yes --> O[Stage and commit all changes]
+    K -- No --> P[Tag current HEAD]
+    O --> P
     P --> Q{Push enabled?}
-    Q -- No --> R[Finish with local commit and tag]
+    Q -- No --> R[Finish with local tag]
     Q -- Yes --> S[Push HEAD to origin]
     S --> T[Push tag to origin]
 ```

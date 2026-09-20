@@ -62,9 +62,9 @@ Steps:
   2. Run update hooks
   3. Show git diff
   4. Run check hooks
-  5. Commit release changes
-  6. Create git tag
-  7. Push commit and tag
+  5. Commit release changes if any
+  6. Tag the resulting HEAD
+  7. Push HEAD and tag if --push is enabled
 `, plan.Module.Name, plan.Module.ModulePath, plan.Version, plan.Tag, latest)
 	return err
 }
@@ -99,9 +99,6 @@ func Apply(ctx context.Context, out io.Writer, repoRoot string, plan Plan, opts 
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(status) == "" {
-		return fmt.Errorf("release produced no file changes; configure an update hook or make changes before apply")
-	}
 
 	diff, err := git.Diff(ctx, repoRoot)
 	if err != nil {
@@ -119,18 +116,28 @@ func Apply(ctx context.Context, out io.Writer, repoRoot string, plan Plan, opts 
 		}
 	}
 
-	if err := git.AddAll(ctx, repoRoot); err != nil {
+	// Checks may also update release files (for example go.sum), so inspect
+	// the final worktree rather than the status captured before checks.
+	clean, err = git.IsClean(ctx, repoRoot)
+	if err != nil {
 		return err
 	}
-	if err := git.Commit(ctx, repoRoot, commitMessage(plan)); err != nil {
-		return err
+	if !clean {
+		if err := git.AddAll(ctx, repoRoot); err != nil {
+			return err
+		}
+		if err := git.Commit(ctx, repoRoot, commitMessage(plan)); err != nil {
+			return err
+		}
+	} else {
+		fmt.Fprintln(out, "No release file changes; tagging current HEAD.")
 	}
 	if err := git.Tag(ctx, repoRoot, plan.Tag); err != nil {
 		return err
 	}
 
 	if !opts.Push {
-		fmt.Fprintf(out, "Created commit and tag locally. Use --push to push them.\n")
+		fmt.Fprintf(out, "Created release tag locally. Use --push when applying a release to push HEAD and its tag.\n")
 		return nil
 	}
 	if err := git.PushHEAD(ctx, repoRoot); err != nil {
