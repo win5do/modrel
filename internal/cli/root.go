@@ -78,7 +78,7 @@ func newListCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			modules, err := discovery.Discover(root, discovery.Options{Excludes: cfg.Discovery.Excludes})
+			modules, err := discovery.Discover(root, discovery.Options{Includes: cfg.Discovery.Includes, Excludes: cfg.Discovery.Excludes})
 			if err != nil {
 				return err
 			}
@@ -179,7 +179,7 @@ func buildPlan(ctx context.Context, target string, opts *options) (string, relea
 		return "", release.Plan{}, err
 	}
 
-	modules, err := discovery.Discover(root, discovery.Options{Excludes: cfg.Discovery.Excludes})
+	modules, err := discovery.Discover(root, discovery.Options{Includes: cfg.Discovery.Includes, Excludes: cfg.Discovery.Excludes})
 	if err != nil {
 		return "", release.Plan{}, err
 	}

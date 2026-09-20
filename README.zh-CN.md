@@ -108,8 +108,14 @@ examples/hello/v1.2.3-rc.1
 
 配置是可选的。将 `.modrel.toml` 放在 Git 仓库根目录下。
 
+includes 和 excludes 匹配相对仓库根目录的模块目录。省略或空 includes 表示包含全部模块；
+配置后仅包含匹配模块。excludes 优先，并排除匹配目录及其后代。
+两者支持精确路径、Go filepath.Match 模式（如 `database/redis/*`）和末尾的 `/**`
+（匹配目录及所有后代）；`.` 表示根模块。内置的 `.git`、`vendor`、`testdata` 排除始终生效。
+
 ```toml
 [discovery]
+# Optional: includes = ["database/redis/plugin", "database/redis/redisboot"]
 excludes = ["third_party/**", "cmd/demo"]
 
 [defaults]

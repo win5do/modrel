@@ -52,6 +52,7 @@ commit = "release(boot): {{ .Version }}"
 	t.Run("loads discovery excludes", func(t *testing.T) {
 		root := t.TempDir()
 		content := []byte(`[discovery]
+includes = ["database/redis/**"]
 excludes = ["third_party/**"]
 `)
 		if err := os.WriteFile(filepath.Join(root, ".modrel.toml"), content, 0o644); err != nil {
@@ -61,6 +62,9 @@ excludes = ["third_party/**"]
 		cfg, err := Load(root)
 		if err != nil {
 			t.Fatalf("Load returned error: %v", err)
+		}
+		if len(cfg.Discovery.Includes) != 1 || cfg.Discovery.Includes[0] != "database/redis/**" {
+			t.Fatalf("includes = %#v", cfg.Discovery.Includes)
 		}
 		if len(cfg.Discovery.Excludes) != 1 || cfg.Discovery.Excludes[0] != "third_party/**" {
 			t.Fatalf("discovery excludes = %#v", cfg.Discovery.Excludes)

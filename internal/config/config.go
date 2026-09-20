@@ -15,6 +15,7 @@ type Config struct {
 }
 
 type DiscoveryConfig struct {
+	Includes []string `toml:"includes"`
 	Excludes []string `toml:"excludes"`
 }
 

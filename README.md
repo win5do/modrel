@@ -109,8 +109,16 @@ tags, a `/v2` module starts at `v2.0.0` (or `v2.0.0-rc.1`).
 
 Configuration is optional. Put `.modrel.toml` at the git repository root.
 
+Includes and excludes match repository-relative module directories. Omitted or empty
+`includes` selects all modules; otherwise only matching modules are selected.
+`excludes` takes precedence and excludes matching directories and their descendants.
+Both accept exact paths, Go `filepath.Match` patterns (such as `database/redis/*`),
+and a trailing `/**` for a directory and all descendants. Use `.` for the root module.
+Built-in exclusions (`.git`, `vendor`, `testdata`) always apply.
+
 ```toml
 [discovery]
+# Optional: includes = ["database/redis/plugin", "database/redis/redisboot"]
 excludes = ["third_party/**", "cmd/demo"]
 
 [defaults]

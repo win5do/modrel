@@ -3,6 +3,7 @@ package discovery
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -100,5 +101,46 @@ func TestMajorVersionTags(t *testing.T) {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+func TestDiscoveryIncludes(t *testing.T) {
+	root := t.TempDir()
+	for _, name := range []string{".", "database/redis/plugin", "database/redis/redisboot", "database/redis/legacy", "database/mysql"} {
+		writeGoMod(t, filepath.Join(root, name, "go.mod"), "example.com/repo/"+name)
+	}
+	for _, tc := range []struct {
+		name string
+		opts Options
+		want []string
+	}{
+		{"exact deep modules", Options{Includes: []string{"database/redis/plugin", "database/redis/redisboot"}}, []string{"database/redis/plugin", "database/redis/redisboot"}},
+		{"recursive excludes win", Options{Includes: []string{"database/redis/**"}, Excludes: []string{"database/redis/legacy"}}, []string{"database/redis/plugin", "database/redis/redisboot"}},
+		{"glob", Options{Includes: []string{"database/redis/p*"}}, []string{"database/redis/plugin"}},
+		{"root", Options{Includes: []string{"."}}, []string{"."}},
+		{"no matches", Options{Includes: []string{"missing"}}, nil},
+		{"excluded ancestor", Options{Includes: []string{"database/redis/plugin"}, Excludes: []string{"database/redis"}}, nil},
+		{"empty includes", Options{Includes: []string{}}, []string{".", "database/mysql", "database/redis/legacy", "database/redis/plugin", "database/redis/redisboot"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			modules, err := Discover(root, tc.opts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got []string
+			for _, m := range modules {
+				got = append(got, m.RelPath)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("got %v, want %v", got, tc.want)
+			}
+		})
+	}
+	// An unrelated malformed module must not break an explicitly selected module.
+	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("invalid go.mod"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Discover(root, Options{Includes: []string{"database/redis/plugin"}}); err != nil {
+		t.Fatal(err)
 	}
 }

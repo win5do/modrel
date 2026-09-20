@@ -19,6 +19,7 @@ type Module struct {
 }
 
 type Options struct {
+	Includes []string
 	Excludes []string
 }
 
@@ -57,6 +58,16 @@ func Discover(root string, opts ...Options) ([]Module, error) {
 			return filepath.SkipDir
 		}
 		if entry.IsDir() || entry.Name() != "go.mod" {
+			return nil
+		}
+
+		rel, err := filepath.Rel(root, filepath.Dir(path))
+		if err != nil {
+			return err
+		}
+		// Includes select module directories, not traversal ancestors. Filter before
+		// parsing so unrelated modules need not have valid go.mod files.
+		if len(options.Includes) > 0 && !matchesPatterns(filepath.ToSlash(rel), options.Includes) {
 			return nil
 		}
 
@@ -143,7 +154,7 @@ func shouldSkipDir(root, path string, opts Options) bool {
 	if strings.HasPrefix(rel, ".git/") {
 		return true
 	}
-	return matchesExclude(rel, opts.Excludes)
+	return matchesPatterns(rel, opts.Excludes)
 }
 
 func samePath(left, right string) bool {
@@ -155,7 +166,7 @@ func samePath(left, right string) bool {
 	return leftAbs == rightAbs
 }
 
-func matchesExclude(rel string, patterns []string) bool {
+func matchesPatterns(rel string, patterns []string) bool {
 	for _, pattern := range patterns {
 		pattern = filepath.ToSlash(strings.TrimSpace(pattern))
 		if pattern == "" {
