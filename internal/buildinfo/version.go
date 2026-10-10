@@ -2,4 +2,4 @@
 package buildinfo
 
 // Version is the current modrel release version.
-const Version = "v0.0.0"
+const Version = "v0.1.0"
