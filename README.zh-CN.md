@@ -6,7 +6,15 @@
 
 它从 `go.mod` 中发现模块，遵循 Go 模块标签规范，并通过钩子完成项目特定的版本文件更新。
 
-## 从源码安装
+## 安装
+
+安装最新发布版本：
+
+```bash
+go install github.com/win5do/modrel/cmd/modrel@latest
+```
+
+### 从源码安装
 
 ```bash
 just install

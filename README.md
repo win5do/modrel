@@ -6,7 +6,15 @@
 
 It discovers modules from `go.mod`, follows Go module tag conventions, and leaves project-specific version file updates to hooks.
 
-## Install From Source
+## Install
+
+Install the latest release:
+
+```bash
+go install github.com/win5do/modrel/cmd/modrel@latest
+```
+
+### Install From Source
 
 ```bash
 just install
